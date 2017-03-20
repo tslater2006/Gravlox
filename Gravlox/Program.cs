@@ -13,6 +13,9 @@ namespace Gravlox
 
         static void Main(string[] args)
         {
+            /* Runs the AstPrinter main from end of chapter 5 */
+            //AstPrinter.Ast_Main(args);
+
             if (args.Length > 1)
             {
                 Console.WriteLine("Usage: gravlox [script]");

@@ -112,6 +112,19 @@ namespace Gravlox
                         {
                             Advance();
                         }
+                    } else if (Match('*'))
+                    {
+                        /* C-Style block comment */
+                        Advance();
+
+                        while (Peek() != '*' && PeekNext() != '/')
+                        {
+                            Advance();
+                        }
+
+                        /* Eat the closing star and slash */
+                        Advance();
+                        Advance();
                     }
                     else
                     {
@@ -151,10 +164,8 @@ namespace Gravlox
 
             while (IsAlphaNumeric(Peek())) Advance();
 
-            string text = Source.Substring(start, current);
-
-
-
+            string text = Source.Substring(start, current - start);
+            
             if (Keywords.ContainsKey(text))
             {
                 AddToken(Keywords[text]);
