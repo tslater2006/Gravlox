@@ -54,16 +54,30 @@ namespace Gravlox
             Scanner scanner = new Scanner(source);
             List<Token> tokens = scanner.ScanTokens();
 
-            // For now, just print the tokens.
-            foreach (Token token in tokens)
+            Parser parser = new Parser(tokens);
+            Expr expression = parser.Parse();
+            if (!HadError)
             {
-                Console.WriteLine(token);
+                Console.WriteLine(new AstPrinter().Print(expression));
             }
+
         }
 
-        internal static void Error(int line, String message)
+        internal static void Error(int line, string message)
         {
             Report(line, "", message);
+        }
+
+        internal static void Error(Token token, String message)
+        {
+            if (token.Type == TokenType.EOF)
+            {
+                Report(token.Line, "at end", message);
+            }
+            else
+            {
+                Report(token.Line, " at '" + token.Lexeme + "'", message);
+            }
         }
 
         private static void Report (int line, string where, string message)

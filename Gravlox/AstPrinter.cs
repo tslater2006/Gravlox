@@ -28,7 +28,7 @@ namespace Gravlox
             return Parenthesize(expr.Operator.Lexeme, expr.Right);
         }
 
-        string Print(Expr expr)
+        internal string Print(Expr expr)
         {
             return expr.accept(this);
         }
