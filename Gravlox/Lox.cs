@@ -10,6 +10,8 @@ namespace Gravlox
     class Lox
     {
         static bool HadError;
+        static bool HadRuntimeError;
+        private static readonly Interpreter interpreter = new Interpreter();
 
         static void Main(string[] args)
         {
@@ -38,6 +40,11 @@ namespace Gravlox
                 Environment.Exit(65);
             }
 
+            if (HadRuntimeError)
+            {
+                Environment.Exit(70);
+            }
+
         }
 
         private static void RunPrompt()
@@ -56,10 +63,12 @@ namespace Gravlox
 
             Parser parser = new Parser(tokens);
             Expr expression = parser.Parse();
-            if (!HadError)
+            if (HadError)
             {
-                Console.WriteLine(new AstPrinter().Print(expression));
+                return;
             }
+
+            interpreter.interpret(expression);
 
         }
 
@@ -78,6 +87,12 @@ namespace Gravlox
             {
                 Report(token.Line, " at '" + token.Lexeme + "'", message);
             }
+        }
+
+        internal static void runtimeError(RuntimeError error)
+        {
+            Console.WriteLine(error.Message + "\r\n[line " + error.Token.Line + "]");
+            HadRuntimeError = true;
         }
 
         private static void Report (int line, string where, string message)
