@@ -6,8 +6,10 @@ namespace Gravlox
     internal interface Visitor<T> {
         T visitBlockStmt(Block stmt);
         T visitExpressionStmt(Expression stmt);
+        T visitIfStmt(If stmt);
         T visitPrintStmt(Print stmt);
         T visitVarStmt(Var stmt);
+        T visitWhileStmt(While stmt);
     }
 
     internal class Block : Stmt
@@ -36,6 +38,23 @@ namespace Gravlox
         internal readonly Expr expression;
     }
 
+    internal class If : Stmt
+    {
+        internal If(Expr condition, Stmt thenBranch, Stmt elseBranch)
+        {
+            this.condition = condition;
+            this.thenBranch = thenBranch;
+            this.elseBranch = elseBranch;
+        }
+
+    override internal T accept<T> (Visitor<T> visitor) {
+        return visitor.visitIfStmt(this);
+    }
+        internal readonly Expr condition;
+        internal readonly Stmt thenBranch;
+        internal readonly Stmt elseBranch;
+    }
+
     internal class Print : Stmt
     {
         internal Print(Expr expression)
@@ -62,6 +81,21 @@ namespace Gravlox
     }
         internal readonly Token name;
         internal readonly Expr initializer;
+    }
+
+    internal class While : Stmt
+    {
+        internal While(Expr condition, Stmt body)
+        {
+            this.condition = condition;
+            this.body = body;
+        }
+
+    override internal T accept<T> (Visitor<T> visitor) {
+        return visitor.visitWhileStmt(this);
+    }
+        internal readonly Expr condition;
+        internal readonly Stmt body;
     }
 
     internal abstract T accept<T>(Visitor<T> visitor);

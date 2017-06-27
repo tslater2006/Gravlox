@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Gravlox
 {
@@ -8,6 +8,7 @@ namespace Gravlox
         T visitBinaryExpr(Binary expr);
         T visitGroupingExpr(Grouping expr);
         T visitLiteralExpr(Literal expr);
+        T visitLogicalExpr(Logical expr);
         T visitUnaryExpr(Unary expr);
         T visitVariableExpr(Variable expr);
     }
@@ -68,6 +69,23 @@ namespace Gravlox
         return visitor.visitLiteralExpr(this);
     }
         internal readonly object Value;
+    }
+
+    internal class Logical : Expr
+    {
+        internal Logical(Expr left, Token Operator, Expr right)
+        {
+            this.left = left;
+            this.Operator = Operator;
+            this.right = right;
+        }
+
+    override internal T accept<T> (Visitor<T> visitor) {
+        return visitor.visitLogicalExpr(this);
+    }
+        internal readonly Expr left;
+        internal readonly Token Operator;
+        internal readonly Expr right;
     }
 
     internal class Unary : Expr

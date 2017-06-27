@@ -32,17 +32,99 @@ namespace Gravlox
 
         private Stmt Statement()
         {
+            if (match(TokenType.FOR))
+            {
+                return ForStatement();
+            }
+            if (match(TokenType.IF))
+            {
+                return IfStatement();
+            }
             if (match(TokenType.PRINT))
             {
                 return PrintStatement();
             }
-
+            if (match(TokenType.WHILE))
+            {
+                return WhileStatement();
+            }
             if (match(TokenType.LEFT_BRACE))
             {
                 return new Stmt.Block(Block());
             }
 
             return ExpressionStatement();
+        }
+
+        private Stmt ForStatement()
+        {
+            consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
+
+            Stmt initializer;
+            if (match(TokenType.SEMICOLON))
+            {
+                initializer = null;
+            }
+            else if (match(TokenType.VAR))
+            {
+                initializer = VarDeclaration();
+            }
+            else
+            {
+                initializer = ExpressionStatement();
+            }
+
+            Expr condition = null;
+            if (!check(TokenType.SEMICOLON))
+            {
+                condition = Expression();
+            }
+            consume(TokenType.SEMICOLON, "Expect ';' after loop condition.");
+
+            Expr increment = null;
+            if (!check(TokenType.RIGHT_PAREN))
+            {
+                increment = Expression();
+            }
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.");
+
+            Stmt body = Statement();
+
+            if (increment != null)
+            {
+                body = new Stmt.Block(new List<Stmt>() { body, new Stmt.Expression(increment)});
+            }
+
+            if (condition == null)
+            {
+                condition = new Expr.Literal(true);
+            }
+
+            body = new Stmt.While(condition, body);
+
+            if (initializer != null)
+            {
+                body = new Stmt.Block(new List<Stmt>() { initializer, body });
+            }
+
+            return body;
+        }
+
+        private Stmt IfStatement()
+        {
+            consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.");
+            Expr condition = Expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.");
+
+            Stmt thenBranch = Statement();
+            Stmt elseBranch = null;
+
+            if(match(TokenType.ELSE))
+            {
+                elseBranch = Statement();
+            }
+
+            return new Stmt.If(condition, thenBranch, elseBranch);
         }
 
         private Stmt PrintStatement()
@@ -67,6 +149,17 @@ namespace Gravlox
             return new Stmt.Var(name, initializer);
         }
 
+        private Stmt WhileStatement()
+        {
+            consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.");
+            Expr condition = Expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after 'while' condition.");
+
+            Stmt body = Statement();
+
+            return new Stmt.While(condition, body);
+        }
+
         private Stmt ExpressionStatement()
         {
             Expr expr = Expression();
@@ -88,11 +181,11 @@ namespace Gravlox
 
         private Expr Assignment()
         {
-            Expr expr = Equality();
+            Expr expr = Or();
 
             if (match(TokenType.EQUAL))
             {
-                Token equals = previous();
+                Token equals = Previous();
                 Expr value = Assignment();
 
                 if (expr is Expr.Variable)
@@ -102,6 +195,34 @@ namespace Gravlox
                 }
 
                 error(equals, "Invalid assignment target.");
+            }
+
+            return expr;
+        }
+
+        private Expr Or()
+        {
+            Expr expr = And();
+
+            while (match(TokenType.OR))
+            {
+                Token opr = Previous();
+                Expr right = And();
+                expr = new Expr.Logical(expr, opr, right);
+            }
+
+            return expr;
+        }
+
+        private Expr And()
+        {
+            Expr expr = Equality();
+
+            while (match(TokenType.AND))
+            {
+                Token opr = Previous();
+                Expr right = Equality();
+                expr = new Expr.Logical(expr, opr, right);
             }
 
             return expr;
@@ -137,7 +258,7 @@ namespace Gravlox
 
             while (match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
             {
-                Token oper = previous();
+                Token oper = Previous();
                 Expr right = Comparison();
                 expr = new Expr.Binary(expr, oper, right);
             }
@@ -151,7 +272,7 @@ namespace Gravlox
 
             while(match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL))
             {
-                Token oper = previous();
+                Token oper = Previous();
                 Expr right = Term();
                 expr = new Expr.Binary(expr, oper, right);
             }
@@ -165,7 +286,7 @@ namespace Gravlox
 
             while(match(TokenType.MINUS, TokenType.PLUS))
             {
-                Token oper = previous();
+                Token oper = Previous();
                 Expr right = Factor();
                 expr = new Expr.Binary(expr, oper, right);
             }
@@ -179,7 +300,7 @@ namespace Gravlox
 
             while (match(TokenType.SLASH, TokenType.STAR))
             {
-                Token oper = previous();
+                Token oper = Previous();
                 Expr right = Unary();
                 expr = new Expr.Binary(expr, oper, right);
             }
@@ -191,7 +312,7 @@ namespace Gravlox
         {
             if (match(TokenType.BANG, TokenType.MINUS))
             {
-                Token oper = previous();
+                Token oper = Previous();
                 Expr right = Unary();
                 return new Expr.Unary(oper, right);
             }
@@ -207,12 +328,12 @@ namespace Gravlox
 
             if (match(TokenType.NUMBER, TokenType.STRING))
             {
-                return new Expr.Literal(previous().Literal);
+                return new Expr.Literal(Previous().Literal);
             }
 
             if (match(TokenType.IDENTIFIER))
             {
-                return new Expr.Variable(previous());
+                return new Expr.Variable(Previous());
             }
 
             if (match(TokenType.LEFT_PAREN))
@@ -257,7 +378,7 @@ namespace Gravlox
 
             while (!isAtEnd())
             {
-                if (previous().Type == TokenType.SEMICOLON) return;
+                if (Previous().Type == TokenType.SEMICOLON) return;
 
                 switch(peek().Type)
                 {
@@ -286,7 +407,7 @@ namespace Gravlox
         {
             if (!isAtEnd()) current++;
 
-            return previous();
+            return Previous();
         }
 
         private bool isAtEnd()
@@ -299,7 +420,7 @@ namespace Gravlox
             return Tokens[current];
         }
 
-        private Token previous()
+        private Token Previous()
         {
             return Tokens[current - 1];
         }

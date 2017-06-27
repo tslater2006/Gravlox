@@ -1,0 +1,6 @@
+﻿var a = "123";
+var b = "456";
+
+if (a and b) {
+    print "a and b are truthy";
+}

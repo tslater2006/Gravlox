@@ -71,6 +71,27 @@ namespace Gravlox
             return expr.Value;
         }
 
+        public object visitLogicalExpr(Expr.Logical expr)
+        {
+            Object left = evaluate(expr.left);
+
+            if (expr.Operator.Type == TokenType.OR)
+            {
+                if (isTruthy(left))
+                {
+                    return left;
+                }
+            } else
+            {
+                if (!isTruthy(left))
+                {
+                    return left;
+                }
+            }
+
+            return evaluate(expr.right);
+        }
+
         public object visitUnaryExpr(Expr.Unary expr)
         {
             object right = evaluate(expr.Right);
@@ -227,6 +248,27 @@ namespace Gravlox
         public object visitVariableExpr(Expr.Variable expr)
         {
             return environment.Get(expr.name);
+        }
+
+        public object visitIfStmt(Stmt.If stmt)
+        {
+            if (isTruthy(stmt.condition))
+            {
+                execute(stmt.thenBranch);
+            } else if (stmt.elseBranch != null)
+            {
+                execute(stmt.elseBranch);
+            }
+            return null;
+        }
+
+        public object visitWhileStmt(Stmt.While stmt)
+        {
+            while (isTruthy(evaluate(stmt.condition)))
+            {
+                execute(stmt.body);
+            }
+            return null;
         }
     }
 }
