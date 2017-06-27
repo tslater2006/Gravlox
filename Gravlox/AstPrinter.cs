@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Gravlox
 {
-    class AstPrinter : Expr.Visitor<string> 
+    /* class AstPrinter : Expr.Visitor<string> 
     {
         public string visitBinaryExpr(Expr.Binary expr)
         {
@@ -60,5 +60,5 @@ namespace Gravlox
 
             Console.WriteLine(new AstPrinter().Print(expression));
         }
-    }
+    }*/
 }

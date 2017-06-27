@@ -11,29 +11,37 @@ namespace GenerateAST
     {
         static void Main(string[] args)
         {
-            List<string> types = new List<string>()
+            List<string> expressions = new List<string>()
             {
+                "Assign   : Token name, Expr value",
                 "Binary   : Expr Left, Token Operator, Expr Right",
                 "Grouping : Expr Expression",
                 "Literal  : object Value",
                 "Unary    : Token Operator, Expr Right",
+                "Variable : Token name"
             };
             var outputDir = Directory.GetCurrentDirectory();
 
-            /*if (args.Length == 0)
+            DefineAST(outputDir, "Expr", expressions);
+
+            List<string> statements = new List<string>()
             {
-                Console.WriteLine("Usage: GenerateAST <output directory>");
-                Environment.Exit(1);
-            }*/
+                "Block      : List<Stmt> statements",
+                "Expression : Expr expression",
+                "Print      : Expr expression",
+                "Var        : Token name, Expr initializer"
+            };
 
-            DefineAST(outputDir, "Expr", types);
-
+            /* Statements */
+            DefineAST(outputDir, "Stmt", statements);
         }
 
         private static void DefineAST(string outDir, string baseName, List<string> types)
         {
             using (var fs = new StreamWriter(outDir + Path.DirectorySeparatorChar + baseName + ".cs"))
             {
+                fs.WriteLine("using System.Collections.Generic;");
+                fs.WriteLine("");
                 fs.WriteLine("namespace Gravlox");
                 fs.WriteLine("{");
                 fs.WriteLine("    abstract class " + baseName + "{");

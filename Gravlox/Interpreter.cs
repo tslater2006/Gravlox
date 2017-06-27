@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace Gravlox
 {
-    class Interpreter : Expr.Visitor<Object>
+    class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
     {
+        private LoxEnvironment environment = new LoxEnvironment();
+
         public object visitBinaryExpr(Expr.Binary expr)
         {
             object left = evaluate(expr.Left);
@@ -84,15 +86,44 @@ namespace Gravlox
             return null;
         }
 
-        internal void interpret(Expr expression)
+        internal void interpret(List<Stmt> statements)
         {
             try
             {
-                object value = evaluate(expression);
-                Console.WriteLine(stringify(value));
+                foreach (Stmt statement in statements)
+                {
+                    execute(statement);
+                }
             } catch (RuntimeError error)
             {
                 Lox.runtimeError(error);
+            }
+        }
+        private void execute(Stmt stmt)
+        {
+            stmt.accept(this);
+        }
+
+        public object visitBlockStmt(Stmt.Block stmt)
+        {
+            executeBlock(stmt.statements, new LoxEnvironment(environment));
+            return null;
+        }
+
+        void executeBlock(List<Stmt> statements, LoxEnvironment environment)
+        {
+            LoxEnvironment previous = this.environment;
+            try
+            {
+                this.environment = environment;
+
+                foreach (Stmt statement in statements)
+                {
+                    execute(statement);
+                }
+            } finally
+            {
+                this.environment = previous;
             }
         }
 
@@ -156,6 +187,46 @@ namespace Gravlox
         {
             if (left is Double && right is Double) return;
             throw new RuntimeError(opr, "Operands must be a number.");
+        }
+
+        /* Statements */
+        public object visitExpressionStmt(Stmt.Expression stmt)
+        {
+            evaluate(stmt.expression);
+            return null;
+        }
+
+        public object visitPrintStmt(Stmt.Print stmt)
+        {
+            Object value = evaluate(stmt.expression);
+            Console.WriteLine(stringify(value));
+            return null;
+        }
+
+        public object visitVarStmt(Stmt.Var stmt)
+        {
+            Object value = null;
+            if (stmt.initializer != null)
+            {
+                value = evaluate(stmt.initializer);
+            }
+
+            environment.Define(stmt.name.Lexeme, value);
+
+            return null;
+        }
+
+        public object visitAssignExpr(Expr.Assign expr)
+        {
+            Object value = evaluate(expr.value);
+
+            environment.Assign(expr.name, value);
+            return value;
+        }
+
+        public object visitVariableExpr(Expr.Variable expr)
+        {
+            return environment.Get(expr.name);
         }
     }
 }

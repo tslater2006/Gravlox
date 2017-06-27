@@ -19,20 +19,116 @@ namespace Gravlox
             this.Tokens = Tokens;
         }
 
-        internal Expr Parse()
+        internal List<Stmt> Parse()
         {
-            try
+            List<Stmt> statements = new List<Stmt>();
+            while (!isAtEnd())
             {
-                return Expression();
-            } catch(ParseError error)
-            {
-                return null;
+                statements.Add(Declaration());
             }
+
+            return statements;
+        }
+
+        private Stmt Statement()
+        {
+            if (match(TokenType.PRINT))
+            {
+                return PrintStatement();
+            }
+
+            if (match(TokenType.LEFT_BRACE))
+            {
+                return new Stmt.Block(Block());
+            }
+
+            return ExpressionStatement();
+        }
+
+        private Stmt PrintStatement()
+        {
+            Expr value = Expression();
+            consume(TokenType.SEMICOLON, "Expect ';' after value.");
+            return new Stmt.Print(value);
+        }
+
+        private Stmt VarDeclaration()
+        {
+            Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+
+            Expr initializer = null;
+
+            if (match(TokenType.EQUAL))
+            {
+                initializer = Expression();
+            }
+
+            consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+            return new Stmt.Var(name, initializer);
+        }
+
+        private Stmt ExpressionStatement()
+        {
+            Expr expr = Expression();
+            consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+            return new Stmt.Expression(expr);
+        }
+
+        private List<Stmt> Block()
+        {
+            List<Stmt> statements = new List<Stmt>();
+            while (!check(TokenType.RIGHT_BRACE) && !isAtEnd())
+            {
+                statements.Add(Declaration());
+            }
+
+            consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+            return statements;
+        }
+
+        private Expr Assignment()
+        {
+            Expr expr = Equality();
+
+            if (match(TokenType.EQUAL))
+            {
+                Token equals = previous();
+                Expr value = Assignment();
+
+                if (expr is Expr.Variable)
+                {
+                    Token name = ((Expr.Variable)expr).name;
+                    return new Expr.Assign(name, value);
+                }
+
+                error(equals, "Invalid assignment target.");
+            }
+
+            return expr;
         }
 
         private Expr Expression()
         {
-            return Equality();
+            return Assignment();
+        }
+
+
+        private Stmt Declaration()
+        {
+            try
+            {
+                if (match(TokenType.VAR))
+                {
+                    return VarDeclaration();
+                } else
+                {
+                    return Statement();
+                }
+            } catch (ParseError error)
+            {
+                synchronize();
+                return null;
+            }
         }
 
         private Expr Equality()
@@ -112,6 +208,11 @@ namespace Gravlox
             if (match(TokenType.NUMBER, TokenType.STRING))
             {
                 return new Expr.Literal(previous().Literal);
+            }
+
+            if (match(TokenType.IDENTIFIER))
+            {
+                return new Expr.Variable(previous());
             }
 
             if (match(TokenType.LEFT_PAREN))

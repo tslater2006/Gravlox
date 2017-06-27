@@ -44,7 +44,6 @@ namespace Gravlox
             {
                 Environment.Exit(70);
             }
-
         }
 
         private static void RunPrompt()
@@ -62,13 +61,13 @@ namespace Gravlox
             List<Token> tokens = scanner.ScanTokens();
 
             Parser parser = new Parser(tokens);
-            Expr expression = parser.Parse();
+            List<Stmt> statements = parser.Parse();
             if (HadError)
             {
                 return;
             }
 
-            interpreter.interpret(expression);
+            interpreter.interpret(statements);
 
         }
 
